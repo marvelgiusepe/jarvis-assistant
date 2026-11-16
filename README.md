@@ -2,12 +2,6 @@
 
 <div align="center">
 
-```
-   ╦╔═╗╦═╗╦  ╦╦╔═╗
-   ║╠═╣╠╦╝╚╗╔╝║╚═╗
-  ╚╝╩ ╩╩╚═ ╚╝ ╩╚═╝
-SYSTEM ONLINE // CO-PILOT ACTIVE
-```
 
 **An intelligent, futuristic autonomous desktop assistant with a full Iron Man-inspired HUD, voice synthesis, hardware telemetry, deep OS control, and automated telephony notifications.**
 
