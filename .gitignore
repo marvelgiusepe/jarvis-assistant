@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Chrome / Edge Application Profile & Browser Caches (>25MB files)
+data/app_profile/
+
+# Logs & Temporary files
+*.log
+*.tmp
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

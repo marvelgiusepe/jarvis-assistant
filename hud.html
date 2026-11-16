@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S. Autonomous Workstation Co-Pilot</title>
+    <link rel="icon" type="image/png" href="/jarvis.png">
+    <style>
+        :root {
+            --cyan: #00f3ff;
+            --cyan-dim: rgba(0, 243, 255, 0.15);
+            --cyan-glow: rgba(0, 243, 255, 0.6);
+            --gold: #ffb700;
+            --gold-glow: rgba(255, 183, 0, 0.6);
+            --bg-dark: #050a12;
+            --panel-bg: rgba(8, 16, 28, 0.88);
+            --border: rgba(0, 243, 255, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #d8f6ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.06) 0%, transparent 70%),
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+        }
+
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 35px;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            background: rgba(5, 10, 18, 0.9);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            letter-spacing: 4px;
+            color: var(--cyan);
+            text-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .status-badge {
+            font-size: 11px;
+            letter-spacing: 2px;
+            padding: 4px 10px;
+            border: 1px solid var(--cyan);
+            background: var(--cyan-dim);
+            color: var(--cyan);
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr 340px;
+            gap: 20px;
+            padding: 20px 35px;
+            max-width: 1650px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            backdrop-filter: blur(12px);
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .panel-header {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+            padding-bottom: 6px;
+        }
+
+        .panel-header::before {
+            content: "";
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        /* Center Stage */
+        .center-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 460px;
+        }
+
+        .arc-reactor {
+            width: 210px;
+            height: 210px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .arc-reactor:hover {
+            transform: scale(1.04);
+        }
+
+        .ring {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px dashed var(--cyan);
+            animation: rotateRing 20s linear infinite;
+        }
+
+        .ring-inner {
+            position: absolute;
+            top: 24px; left: 24px; right: 24px; bottom: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--cyan);
+            border-top: 3px solid var(--gold);
+            animation: rotateRingRev 8s linear infinite;
+        }
+
+        .core {
+            position: absolute;
+            top: 55px; left: 55px; right: 55px; bottom: 55px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 0%, var(--cyan) 60%, rgba(0, 243, 255, 0.2) 100%);
+            box-shadow: 0 0 35px var(--cyan-glow), inset 0 0 20px #fff;
+            animation: pulseGlow 2.5s ease-in-out infinite alternate;
+            transition: all 0.3s;
+        }
+
+        .speaking .core {
+            box-shadow: 0 0 65px var(--cyan), 0 0 100px #fff;
+            animation: pulseFast 0.35s ease-in-out infinite alternate;
+        }
+
+        .listening .core {
+            box-shadow: 0 0 65px var(--gold), 0 0 100px var(--gold);
+            background: radial-gradient(circle, #ffffff 0%, var(--gold) 60%, rgba(255, 183, 0, 0.2) 100%);
+        }
+
+        @keyframes rotateRing { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes rotateRingRev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 25px var(--cyan-glow); }
+            to { box-shadow: 0 0 50px var(--cyan), 0 0 80px rgba(0, 243, 255, 0.4); }
+        }
+        @keyframes pulseFast {
+            from { transform: scale(0.96); box-shadow: 0 0 30px var(--cyan); }
+            to { transform: scale(1.05); box-shadow: 0 0 80px var(--cyan), 0 0 120px #fff; }
+        }
+
+        #audioWave {
+            width: 100%;
+            height: 70px;
+            margin-top: 20px;
+        }
+
+        .voice-status {
+            margin-top: 15px;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .voice-status .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        /* Metric cards */
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .metric-label { color: #8da4b8; }
+        .metric-val { color: var(--cyan); font-weight: 600; }
+
+        .bar-bg {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--gold));
+            box-shadow: 0 0 8px var(--cyan-glow);
+            transition: width 0.5s ease;
+        }
+
+        /* Buttons & Grid */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .action-btn {
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 9px 12px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .action-btn:hover {
+            background: var(--cyan);
+            color: #050a12;
+            box-shadow: 0 0 14px var(--cyan);
+        }
+
+        .action-btn.active {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: #050a12;
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        /* Console */
+        .console-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 11.5px;
+            color: #a4e7ff;
+            line-height: 1.5;
+            border-radius: 4px;
+        }
+
+        .console-entry { margin-bottom: 4px; }
+        .console-entry span.time { color: #557d94; }
+        .console-entry span.tag { color: var(--gold); }
+        .console-entry span.user { color: #ff55aa; }
+
+        /* Notes & Timer Widgets */
+        .widget-box {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px dashed rgba(0, 243, 255, 0.25);
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .timer-display {
+            font-size: 20px;
+            letter-spacing: 2px;
+            color: var(--gold);
+            text-align: center;
+            font-weight: bold;
+            margin: 6px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>J.A.R.V.I.S.</h1>
+            <span class="status-badge" id="systemStatus">COGNITIVE LEVEL 100% // ONLINE</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div id="originNotice" style="display: none; font-size: 11px; padding: 4px 10px; background: rgba(255, 183, 0, 0.2); border: 1px solid var(--gold); border-radius: 4px; color: var(--gold); cursor: pointer;" onclick="openLocalhost()">
+                ⚠️ Buka via Localhost agar Mic Tersimpan Permanen
+            </div>
+            <div style="font-size: 13px; color: #79a2ba;" id="liveClock">00:00:00</div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Left Panel: Diagnostics & System Modules -->
+        <div class="panel">
+            <div class="panel-header">Workstation Diagnostics</div>
+            
+            <div class="metric-row">
+                <span class="metric-label">CPU Cores</span>
+                <span class="metric-val">16 Cores Online</span>
+            </div>
+
+            <div class="metric-row">
+                <span class="metric-label">RAM Allocated</span>
+                <span class="metric-val">80% (12.3 GB / 15.4 GB)</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width: 80%;"></div></div>
+
+            <div class="metric-row">
+                <span class="metric-label">Storage (C:)</span>
+                <span class="metric-val">13.9 GB Free / 194.7 GB</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width: 93%;"></div></div>
+
+            <div class="metric-row">
+                <span class="metric-label">Storage (D:)</span>
+                <span class="metric-val">33.9 GB Free / 280.9 GB</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width: 88%;"></div></div>
+
+            <div class="metric-row">
+                <span class="metric-label">Power Line</span>
+                <span class="metric-val" style="color: #00ffaa;">79% [Charging Online]</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width: 79%; background: #00ffaa;"></div></div>
+
+            <!-- Voice Scratchpad Widget -->
+            <div class="panel-header" style="margin-top: 14px;">Voice Scratchpad (Notes)</div>
+            <div class="widget-box">
+                <div style="color: #8da4b8; font-size: 11px;">Say "Note: [text]" to save note</div>
+                <div id="scratchpadContent" style="margin-top: 6px; color: #d8f6ff; max-height: 80px; overflow-y: auto;">
+                    No notes recorded yet, Sir.
+                </div>
+            </div>
+
+            <!-- Active Timer Widget -->
+            <div class="panel-header" style="margin-top: 14px;">Active Countdown Timer</div>
+            <div class="widget-box">
+                <div class="timer-display" id="timerDisplay">--:--</div>
+                <div style="text-align: center; color: #8da4b8; font-size: 11px;">Say "Timer 5 minutes"</div>
+            </div>
+
+            <!-- Mobile Uplink & Safety Matrix -->
+            <div class="panel-header" style="margin-top: 14px;">Mobile Uplink & Safety Matrix</div>
+            <div class="widget-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="color: #8da4b8; font-size: 11px;">Safety Protocol</span>
+                    <span id="safetyBadge" style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(0,255,170,0.2); color: #00ffaa; border: 1px solid #00ffaa;">SECURE</span>
+                </div>
+                
+                <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                    <input type="text" id="targetPhoneInput" placeholder="+6281234567890" style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                    <button onclick="savePhoneConfig()" style="background: var(--cyan-dim); border: 1px solid var(--cyan); color: var(--cyan); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">SAVE</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <button class="action-btn" onclick="triggerTestCall()" style="font-size: 11px; padding: 6px;">
+                        <span>📞 Test Call</span>
+                    </button>
+                    <button class="action-btn" onclick="triggerTestWhatsApp()" style="font-size: 11px; padding: 6px;">
+                        <span>💬 WhatsApp</span>
+                    </button>
+                </div>
+
+                <button class="action-btn" id="confirmSafeBtn" onclick="confirmSafety()" style="width: 100%; border-color: #00ffaa; color: #00ffaa; display: none; margin-bottom: 6px;">
+                    <span>🛡️ I AM SAFE (CONFIRM)</span>
+                </button>
+
+                <div style="color: #79a2ba; font-size: 10px;" id="schedulesListText">
+                    Loading schedules...
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Stage: Arc Reactor & Voice Engine -->
+        <div class="panel center-stage" id="stageContainer">
+            <div class="arc-reactor" id="arcReactor" onclick="toggleVoiceListening()">
+                <div class="ring"></div>
+                <div class="ring-inner"></div>
+                <div class="core"></div>
+            </div>
+
+            <div class="voice-status" id="voiceIndicator">
+                <div class="pulse-dot" id="pulseDot"></div>
+                <span id="voiceStatusText">MIC READY - CLICK ARC REACTOR</span>
+            </div>
+
+            <canvas id="audioWave"></canvas>
+
+            <!-- Spoken hint guide -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 15px; font-size: 11px; color: #79a2ba;">
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"turn on bluetooth"</span>
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"open youtube"</span>
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"screenshot"</span>
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"volume up / down"</span>
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"timer 3 minutes"</span>
+                <span style="border: 1px solid rgba(0,243,255,0.25); padding: 3px 8px; border-radius: 10px;">"cari [query]"</span>
+            </div>
+        </div>
+
+        <!-- Right Panel: Quick Executive Actions & Log -->
+        <div class="panel">
+            <div class="panel-header">Quick Executive Actions</div>
+            
+            <button class="action-btn" id="voiceToggleBtn" onclick="toggleVoiceListening()" style="margin-bottom: 10px;">
+                <span>🎙️ VOICE LISTENER</span> <span id="micStateTag">[OFF]</span>
+            </button>
+
+            <div class="quick-grid">
+                <button class="action-btn" onclick="executeCommand('turn on bluetooth')">
+                    <span>🔵 Bluetooth</span> <span>[ACT]</span>
+                </button>
+                <button class="action-btn" onclick="executeCommand('wifi')">
+                    <span>📶 Wi-Fi</span> <span>[NET]</span>
+                </button>
+                <button class="action-btn" onclick="executeCommand('open youtube')">
+                    <span>▶️ YouTube</span> <span>[WEB]</span>
+                </button>
+                <button class="action-btn" onclick="executeCommand('screenshot')">
+                    <span>📸 Screenshot</span> <span>[PRNT]</span>
+                </button>
+                <button class="action-btn" onclick="executeCommand('volume up')">
+                    <span>🔊 Volume +</span> <span>[VOL]</span>
+                </button>
+                <button class="action-btn" onclick="executeCommand('mute')">
+                    <span>🔇 Mute</span> <span>[MUTE]</span>
+                </button>
+            </div>
+
+            <div class="panel-header" style="margin-top: 10px;">Subsystem Dialogue & Event Log</div>
+            <div class="console-box" id="consoleLog">
+                <div class="console-entry"><span class="time">[01:00]</span> <span class="tag">[SYS]</span> Full cognitive protocol active.</div>
+                <div class="console-entry"><span class="time">[01:01]</span> <span class="tag">[NET]</span> Subsystem dispatcher ready.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Origin Check: Persistent Permission Notice
+        if (window.location.protocol === 'file:') {
+            const notice = document.getElementById('originNotice');
+            if (notice) notice.style.display = 'block';
+        }
+
+        function openLocalhost() {
+            window.location.href = "http://localhost:8765";
+        }
+
+        // Real-time Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString() + ' // ' + now.toLocaleDateString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Audio Context Synthesizer
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+
+        function playSciFiChime(type = 'affirmative') {
+            const ctx = getAudioContext();
+            if (ctx.state === 'suspended') ctx.resume();
+            const now = ctx.currentTime;
+
+            if (type === 'affirmative') {
+                [880, 1318.5].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.07);
+                    gain.gain.setValueAtTime(0.18, now + i * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.07);
+                    osc.stop(now + i * 0.07 + 0.35);
+                });
+            } else if (type === 'alarm') {
+                [880, 880, 1100, 1100].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.12);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.1);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.12);
+                    osc.stop(now + i * 0.12 + 0.12);
+                });
+            }
+        }
+
+        // ==========================================
+        // TEXT-TO-SPEECH (JARVIS VOICE ENGINE)
+        // ==========================================
+        let jarvisVoice = null;
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            jarvisVoice = voices.find(v => 
+                v.lang.includes('en-GB') || 
+                v.name.includes('Ryan') || 
+                v.name.includes('George') || 
+                v.name.includes('UK English Male')
+            ) || voices.find(v => v.lang.includes('id-ID')) || voices[0];
+        }
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        function jarvisSpeak(text, onEnd = null) {
+            window.speechSynthesis.cancel();
+            if (!jarvisVoice) loadVoices();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (jarvisVoice) utterance.voice = jarvisVoice;
+            utterance.pitch = 0.92;
+            utterance.rate = 1.05; // Slightly snappier butler pace
+
+            const stage = document.getElementById('stageContainer');
+            const statusText = document.getElementById('voiceStatusText');
+
+            utterance.onstart = () => {
+                stage.classList.add('speaking');
+                statusText.innerText = "JARVIS SPEAKING...";
+                playSciFiChime('affirmative');
+                logAction(`JARVIS: "${text}"`, 'SYS');
+            };
+
+            utterance.onend = () => {
+                stage.classList.remove('speaking');
+                statusText.innerText = isListening ? "LISTENING FOR YOUR VOICE..." : "MIC READY - CLICK ARC REACTOR";
+                if (onEnd) onEnd();
+            };
+
+            utterance.onerror = () => stage.classList.remove('speaking');
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ==========================================
+        // SPEECH RECOGNITION (MIC LISTENER)
+        // ==========================================
+        let recognition = null;
+        let isListening = false;
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRec) {
+            recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('stageContainer').classList.add('listening');
+                document.getElementById('voiceIndicator').style.borderColor = 'var(--gold)';
+                document.getElementById('voiceIndicator').style.color = 'var(--gold)';
+                document.getElementById('pulseDot').style.background = 'var(--gold)';
+                document.getElementById('voiceStatusText').innerText = "LISTENING... SPEAK TO JARVIS";
+                document.getElementById('micStateTag').innerText = "[ACTIVE]";
+                document.getElementById('voiceToggleBtn').classList.add('active');
+                logAction("Microphone active. Awaiting voice input.", "MIC");
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim();
+                logAction(`You: "${transcript}"`, "USER");
+                executeCommand(transcript);
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    try { recognition.start(); } catch(e) {}
+                } else {
+                    document.getElementById('stageContainer').classList.remove('listening');
+                    document.getElementById('voiceIndicator').style.borderColor = 'var(--cyan)';
+                    document.getElementById('voiceIndicator').style.color = 'var(--cyan)';
+                    document.getElementById('pulseDot').style.background = 'var(--cyan)';
+                    document.getElementById('voiceStatusText').innerText = "MIC READY - CLICK ARC REACTOR";
+                    document.getElementById('micStateTag').innerText = "[OFF]";
+                    document.getElementById('voiceToggleBtn').classList.remove('active');
+                }
+            };
+        }
+
+        async function toggleVoiceListening() {
+            if (!recognition) {
+                alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+                return;
+            }
+            if (isListening) {
+                isListening = false;
+                try { recognition.stop(); } catch(e) {}
+                logAction("Voice recognition stopped.", "MIC");
+            } else {
+                getAudioContext();
+                try {
+                    // Pre-warm & persist mic access in Chrome/Edge
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && !window._micStream) {
+                        window._micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                } catch(err) {
+                    console.warn("Microphone access check:", err);
+                    logAction("Please allow microphone access when prompted.", "ALERT");
+                }
+                isListening = true;
+                try { recognition.start(); } catch(e) {}
+            }
+        }
+
+        // ==========================================
+        // TAB MANAGEMENT FOR CLEAN OPEN & CLOSE
+        // ==========================================
+        const activeTabs = {};
+        let lastOpenedTab = null;
+
+        function trackTab(url, targetName, tabRef) {
+            if (!tabRef) return;
+            lastOpenedTab = tabRef;
+            if (targetName) {
+                activeTabs[targetName.toLowerCase().trim()] = tabRef;
+            }
+            try {
+                const u = new URL(url);
+                const host = u.hostname.toLowerCase().replace(/^www\./, '');
+                activeTabs[host] = tabRef;
+                const rootDomain = host.split('.')[0];
+                if (rootDomain) activeTabs[rootDomain] = tabRef;
+            } catch(e) {}
+        }
+
+        function closeTrackedTab(target) {
+            const t = (target || "").toLowerCase().trim();
+            let closed = false;
+
+            // 1. Direct key match
+            if (t && activeTabs[t] && !activeTabs[t].closed) {
+                try { activeTabs[t].close(); closed = true; } catch(e) {}
+                delete activeTabs[t];
+            } else if (t) {
+                // 2. Fuzzy key match
+                for (const key in activeTabs) {
+                    if (key.includes(t) || t.includes(key)) {
+                        if (activeTabs[key] && !activeTabs[key].closed) {
+                            try { activeTabs[key].close(); closed = true; } catch(e) {}
+                            delete activeTabs[key];
+                            closed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback: close lastOpenedTab
+            if (!closed && lastOpenedTab && !lastOpenedTab.closed) {
+                try { lastOpenedTab.close(); closed = true; } catch(e) {}
+                lastOpenedTab = null;
+            }
+
+            return closed;
+        }
+
+        function openTabSafely(url, targetName) {
+            // Exactly 1 tab opened via window.open
+            const tab = window.open(url, '_blank');
+            if (!tab || tab.closed || typeof tab.closed === 'undefined') {
+                logAction("Browser blocked popup. Spawning via Windows shell fallback.", "WARN");
+                fetch("http://127.0.0.1:8765/api/spawn-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: url })
+                });
+            } else {
+                trackTab(url, targetName, tab);
+                logAction(`Navigated to ${url}`, "WEB");
+            }
+        }
+
+        // ==========================================
+        // COMPREHENSIVE COMMAND EXECUTION ENGINE
+        // ==========================================
+        let timerInterval = null;
+
+        async function executeCommand(rawCmd) {
+            const cmd = rawCmd.toLowerCase().trim();
+            if (!cmd) return;
+
+            // Visual feedback: Processing
+            const statusText = document.getElementById('voiceStatusText');
+            if (statusText) statusText.innerText = "COGNITIVE PROCESSING...";
+
+            // Send all directives to the Cognitive AI Brain backend
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/command", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ command: cmd }),
+                    signal: AbortSignal.timeout(15000)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Speak the cognitive response
+                    jarvisSpeak(data.reply);
+
+                    // If system action involves a timer, trigger UI countdown
+                    if (data.action === "system" && (cmd.includes("timer") || cmd.includes("countdown") || cmd.includes("menit"))) {
+                        const m = cmd.match(/(\d+)/);
+                        const mins = m ? parseInt(m[1]) : 1;
+                        startTimer(mins * 60);
+                    }
+
+                    // Open URL only if genuine open action and url is present (Exactly 1 tab)
+                    if (data.action === "open_url" && data.url) {
+                        const isClose = /^(?:close|tutup|kill|stop|matikan|hentikan|exit|quit|terminate)\b/i.test(cmd);
+                        if (!isClose) {
+                            openTabSafely(data.url, data.target);
+                        }
+                    }
+
+                    // Close tab directive: programmatically close tracked tab
+                    if (data.action === "close_url" || (data.action === "close" && data.target_type === "website")) {
+                        const closed = closeTrackedTab(data.target);
+                        if (closed) {
+                            logAction(`Browser tab for "${data.target || 'target'}" terminated.`, "WEB");
+                        } else {
+                            // Backup OS tab closer
+                            fetch("http://127.0.0.1:8765/api/close-active-tab", { method: "POST" });
+                        }
+                    }
+                    return;
+                }
+            } catch (err) {
+                console.warn("Desktop brain link failed:", err);
+            }
+
+            // Fallback ONLY when desktop backend is offline
+            logAction("Backend server offline. Recheck localhost:8765.", "ALERT");
+            
+            // Local Math Fallback
+            if (/\d/.test(cmd) && (cmd.includes("times") || cmd.includes("plus") || cmd.includes("minus") || cmd.includes("kali") || cmd.includes("bagi"))) {
+                try {
+                    let sanitized = cmd.replace(/what is|calculate|solve|hitung|berapa/gi, "")
+                                       .replace(/times|dikali|kali|x/gi, "*")
+                                       .replace(/divided by|dibagi|bagi/gi, "/")
+                                       .replace(/plus|ditambah|tambah/gi, "+")
+                                       .replace(/minus|dikurang|kurang/gi, "-")
+                                       .replace(/[^0-9\+\-\*\/\.\(\)\s]/g, "").trim();
+                    const ans = eval(sanitized);
+                    jarvisSpeak(`The calculation yields ${ans}, Sir.`);
+                    return;
+                } catch(e) {}
+            }
+
+            // Local Timer Fallback
+            if (cmd.includes("timer") || cmd.includes("countdown")) {
+                const m = cmd.match(/(\d+)/);
+                const mins = m ? parseInt(m[1]) : 1;
+                jarvisSpeak(`Timer set for ${mins} minute${mins > 1 ? 's' : ''}, Sir.`);
+                startTimer(mins * 60);
+                return;
+            }
+
+            jarvisSpeak("Desktop core bridge is currently unreachable, Sir. Please ensure Python server is active.");
+        }
+
+        // Timer Implementation
+        function startTimer(seconds) {
+            if (timerInterval) clearInterval(timerInterval);
+            let remaining = seconds;
+
+            timerInterval = setInterval(() => {
+                remaining--;
+                const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+                const secs = String(remaining % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').innerText = `${mins}:${secs}`;
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timerDisplay').innerText = "DONE!";
+                    playSciFiChime('alarm');
+                    jarvisSpeak("Sir, your countdown timer has elapsed.");
+                }
+            }, 1000);
+        }
+
+        // Notes Implementation
+        function saveNote(note) {
+            const pad = document.getElementById('scratchpadContent');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            if (pad.innerText.includes("No notes")) pad.innerHTML = "";
+            pad.innerHTML += `<div style="margin-bottom: 4px;">• <span style="color:var(--gold)">[${timeStr}]</span> ${note}</div>`;
+            pad.scrollTop = pad.scrollHeight;
+        }
+
+        function logAction(msg, tag = 'CMD') {
+            const box = document.getElementById('consoleLog');
+            const now = new Date();
+            const timeStr = `[${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}]`;
+            const div = document.createElement('div');
+            div.className = 'console-entry';
+            const tagClass = tag === 'USER' ? 'user' : 'tag';
+            div.innerHTML = `<span class="time">${timeStr}</span> <span class="${tagClass}">[${tag}]</span> ${msg}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // Waveform Visualizer
+        const canvas = document.getElementById('audioWave');
+        const ctx = canvas.getContext('2d');
+        let phase = 0;
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth - 40;
+            canvas.height = 65;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+
+            const isSpeaking = document.getElementById('stageContainer').classList.contains('speaking');
+            const isRec = isListening;
+
+            if (isSpeaking) {
+                ctx.strokeStyle = '#00f3ff';
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 14;
+            } else if (isRec) {
+                ctx.strokeStyle = '#ffb700';
+                ctx.shadowColor = '#ffb700';
+                ctx.shadowBlur = 14;
+            } else {
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
+                ctx.shadowBlur = 0;
+            }
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const mid = h / 2;
+            const amplitude = isSpeaking ? 26 : (isRec ? 18 : 6);
+
+            for (let x = 0; x < w; x++) {
+                const distFromCenter = Math.abs(x - w / 2) / (w / 2);
+                const env = Math.exp(-distFromCenter * 2.5);
+                const y = mid + Math.sin(x * 0.05 + phase) * amplitude * env * Math.sin(x * 0.015 - phase * 0.7);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            phase += isSpeaking ? 0.09 : 0.04;
+            requestAnimationFrame(drawWave);
+        }
+        drawWave();
+
+        // ==========================================
+        // MOBILE UPLINK & SAFETY PROTOCOL
+        // ==========================================
+        async function loadPhoneConfig() {
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/phone/config");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.target_phone_number) {
+                        const input = document.getElementById('targetPhoneInput');
+                        if (input && !input.value) input.value = data.target_phone_number;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function savePhoneConfig() {
+            const num = document.getElementById('targetPhoneInput').value.trim();
+            if (!num) return;
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/phone/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target_phone_number: num })
+                });
+                if (res.ok) {
+                    jarvisSpeak(`Mobile phone number updated to ${num}, Sir.`);
+                    logAction(`Target phone updated: ${num}`, "NET");
+                }
+            } catch(e) {}
+        }
+
+        async function triggerTestCall() {
+            const num = document.getElementById('targetPhoneInput').value.trim();
+            jarvisSpeak("Initiating phone call to your mobile, Sir.");
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/phone/call", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ to: num })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    jarvisSpeak(data.reply);
+                    logAction(data.reply, "PHONE");
+                }
+            } catch(e) {}
+        }
+
+        async function triggerTestWhatsApp() {
+            const num = document.getElementById('targetPhoneInput').value.trim();
+            jarvisSpeak("Dispatching automated WhatsApp reminder, Sir.");
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/phone/whatsapp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ to: num })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    jarvisSpeak(data.reply);
+                    logAction(data.reply, "WA");
+                }
+            } catch(e) {}
+        }
+
+        async function confirmSafety() {
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/safety/confirm", { method: "POST" });
+                if (res.ok) {
+                    const data = await res.json();
+                    jarvisSpeak(data.reply);
+                    logAction("Safety confirmed.", "SAFE");
+                    pollSafety();
+                }
+            } catch(e) {}
+        }
+
+        async function pollSafety() {
+            try {
+                const res = await fetch("http://127.0.0.1:8765/api/safety/status");
+                if (res.ok) {
+                    const data = await res.json();
+                    const badge = document.getElementById('safetyBadge');
+                    const btn = document.getElementById('confirmSafeBtn');
+                    if (data.status === "CHECKIN_PENDING") {
+                        badge.innerText = "CHECK-IN REQUIRED";
+                        badge.style.color = "var(--gold)";
+                        badge.style.borderColor = "var(--gold)";
+                        badge.style.background = "rgba(255,183,0,0.2)";
+                        if (btn) btn.style.display = "block";
+                    } else if (data.status === "ALERT_OVERDUE") {
+                        badge.innerText = "OVERDUE / ALERT";
+                        badge.style.color = "#ff4466";
+                        badge.style.borderColor = "#ff4466";
+                        badge.style.background = "rgba(255,68,102,0.2)";
+                        if (btn) btn.style.display = "block";
+                    } else {
+                        badge.innerText = "SECURE";
+                        badge.style.color = "#00ffaa";
+                        badge.style.borderColor = "#00ffaa";
+                        badge.style.background = "rgba(0,255,170,0.2)";
+                        if (btn) btn.style.display = "none";
+                    }
+                }
+
+                // Poll schedules
+                const schedRes = await fetch("http://127.0.0.1:8765/api/schedules");
+                if (schedRes.ok) {
+                    const list = await schedRes.json();
+                    const txt = document.getElementById('schedulesListText');
+                    if (txt && list.length > 0) {
+                        txt.innerHTML = "Active: " + list.map(s => `<span style="color:var(--cyan)">${s.time}</span> (${s.label})`).join(', ');
+                    }
+                }
+            } catch(e) {}
+        }
+
+        loadPhoneConfig();
+        setInterval(pollSafety, 8000);
+        pollSafety();
+    </script>
+</body>
+</html>

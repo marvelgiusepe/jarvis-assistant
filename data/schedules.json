@@ -1,0 +1,14 @@
+[
+  {
+    "id": "study_reminder_1",
+    "label": "Jadwal Belajar & Safety Check",
+    "time": "20:00",
+    "repeat": "daily",
+    "actions": [
+      "phone_call",
+      "whatsapp_message"
+    ],
+    "enabled": true,
+    "last_triggered_date": null
+  }
+]

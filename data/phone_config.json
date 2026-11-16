@@ -1,0 +1,11 @@
+{
+  "target_phone_number": "+6281234567890",
+  "twilio_account_sid": "",
+  "twilio_auth_token": "",
+  "twilio_phone_number": "",
+  "twilio_whatsapp_number": "",
+  "caller_name": "J.A.R.V.I.S.",
+  "voice_language": "id-ID",
+  "voice_name": "Polly.Brian"
+}
+
